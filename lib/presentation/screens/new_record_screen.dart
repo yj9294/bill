@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../core/ads/rewarded_record_ad_gate.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/app_loading_dialog.dart';
 import '../../core/widgets/app_primary_button.dart';
 import '../../core/widgets/app_toast.dart';
 import '../../domain/entities/ledger_entry.dart';
@@ -23,6 +25,7 @@ class _NewRecordScreenState extends State<NewRecordScreen> {
   final _noteController = TextEditingController();
   EntryType _type = EntryType.expense;
   String _category = 'Food';
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -161,32 +164,20 @@ class _NewRecordScreenState extends State<NewRecordScreen> {
                 ],
                 const SizedBox(height: 24),
                 AppPrimaryButton(
-                  label: 'Save Record',
+                  label: _isSubmitting ? 'Unlocking...' : 'Save Record',
                   icon: Icons.check_rounded,
-                  onPressed: amount == null || amount <= 0 || categories.isEmpty
+                  onPressed:
+                      _isSubmitting ||
+                          amount == null ||
+                          amount <= 0 ||
+                          categories.isEmpty
                       ? null
                       : () async {
-                          await context.read<LedgerProvider>().addEntry(
-                            title: _titleController.text,
-                            category: selectedCategory,
-                            type: _type,
+                          await _handleSaveRecord(
                             amount: amount,
-                            note: _noteController.text,
+                            category: selectedCategory,
+                            fallbackCategory: categories.first.name,
                           );
-                          _titleController.clear();
-                          _amountController.clear();
-                          _noteController.clear();
-                          if (context.mounted) {
-                            AppToast.show(
-                              context,
-                              title: 'Record saved',
-                              message:
-                                  '$selectedCategory ${_type == EntryType.income ? 'income' : 'expense'} added locally.',
-                            );
-                            setState(() {
-                              _category = categories.first.name;
-                            });
-                          }
                         },
                 ),
               ],
@@ -195,5 +186,122 @@ class _NewRecordScreenState extends State<NewRecordScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleSaveRecord({
+    required double amount,
+    required String category,
+    required String fallbackCategory,
+  }) async {
+    setState(() => _isSubmitting = true);
+
+    try {
+      final rewardedAdGate = context.read<RewardedRecordAdGate>();
+      final unlocked = await _unlockRecordSaveIfNeeded(rewardedAdGate);
+      if (!unlocked || !mounted) {
+        return;
+      }
+
+      await context.read<LedgerProvider>().addEntry(
+        title: _titleController.text,
+        category: category,
+        type: _type,
+        amount: amount,
+        note: _noteController.text,
+      );
+      _titleController.clear();
+      _amountController.clear();
+      _noteController.clear();
+      if (!mounted) {
+        return;
+      }
+
+      AppToast.show(
+        context,
+        title: 'Record saved',
+        message:
+            '$category ${_type == EntryType.income ? 'income' : 'expense'} added locally.',
+      );
+      setState(() {
+        _category = fallbackCategory;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<bool> _unlockRecordSaveIfNeeded(
+    RewardedRecordAdGate rewardedAdGate,
+  ) async {
+    if (!rewardedAdGate.shouldShowAdBeforeNextRecord) {
+      rewardedAdGate.markRecordSavedWithoutAd();
+      return true;
+    }
+
+    await AppLoadingDialog.show(
+      context,
+      title: 'Loading rewarded ad',
+      message: 'A short test ad is required before this record is saved.',
+    );
+
+    var loadingVisible = true;
+
+    try {
+      final outcome = await rewardedAdGate.loadRewardedAdForRecord();
+      if (!mounted) {
+        return false;
+      }
+
+      AppLoadingDialog.hide(context);
+      loadingVisible = false;
+
+      switch (outcome.status) {
+        case RewardedAdLoadStatus.loaded:
+          final ad = outcome.ad!;
+          final rewardEarned = await rewardedAdGate.showRewardedAd(ad);
+          if (!mounted) {
+            return false;
+          }
+
+          if (!rewardEarned) {
+            AppToast.show(
+              context,
+              title: 'Reward not completed',
+              message: 'Finish the rewarded ad to continue saving this record.',
+              tone: AppToastTone.warning,
+            );
+            return false;
+          }
+
+          rewardedAdGate.markRecordSavedAfterReward();
+          return true;
+        case RewardedAdLoadStatus.disabled:
+          rewardedAdGate.markRecordSavedWithoutAd();
+          return true;
+        case RewardedAdLoadStatus.noNetwork:
+          AppToast.show(
+            context,
+            title: 'Network required',
+            message:
+                'Connect to the internet before requesting the rewarded ad.',
+            tone: AppToastTone.warning,
+          );
+          return false;
+        case RewardedAdLoadStatus.failed:
+          AppToast.show(
+            context,
+            title: 'Ad failed to load',
+            message: 'The rewarded test ad did not load. Please try again.',
+            tone: AppToastTone.warning,
+          );
+          return false;
+      }
+    } finally {
+      if (loadingVisible && mounted) {
+        AppLoadingDialog.hide(context);
+      }
+    }
   }
 }
