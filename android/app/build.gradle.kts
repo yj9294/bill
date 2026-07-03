@@ -5,6 +5,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val debugAdmobAppId = "ca-app-pub-3940256099942544~3347511713"
+val releaseAdmobAppId =
+    (project.findProperty("ADMOB_APP_ID_ANDROID") as String?) ?: ""
+
 android {
     namespace = "com.nico.bill.bill"
     compileSdk = flutter.compileSdkVersion
@@ -31,10 +35,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["admobAppId"] = debugAdmobAppId
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            manifestPlaceholders["admobAppId"] = releaseAdmobAppId
         }
     }
 }

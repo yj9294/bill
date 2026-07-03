@@ -31,11 +31,10 @@ class CategoriesScreen extends StatelessWidget {
             ScreenHeader(
               title: 'Categories',
               subtitle: 'Local groups used by records and budgets.',
+              leading: const AppBackButton(),
               action: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const AppBackButton(),
-                  const SizedBox(width: 10),
                   _AddCategoryButton(
                     onPressed: () => _openAddCategorySheet(context),
                   ),
@@ -203,136 +202,147 @@ class _AddCategorySheetState extends State<_AddCategorySheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 12, 12, bottomInset + 12),
-      child: AppCard(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.line,
-                  borderRadius: BorderRadius.circular(999),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _dismissKeyboard,
+        child: AppCard(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.line,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 18),
-            Text('New category', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text(
-              'Create a local category for future records.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
-            ),
-            const SizedBox(height: 18),
-            EntryTypeSwitch(
-              value: _type,
-              onChanged: (type) => setState(() => _type = type),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Category name',
-                hintText: 'Coffee, Bonus, Taxi...',
+              const SizedBox(height: 18),
+              Text(
+                'New category',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 14),
-            Text('Icon', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: CategoryIconCatalog.options.map((option) {
-                final selected = option.key == _selectedIconKey;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => setState(() => _selectedIconKey = option.key),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: _selectedColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: selected ? _selectedColor : AppColors.line,
-                        width: selected ? 2 : 1,
-                      ),
-                    ),
-                    child: Icon(
-                      option.icon,
-                      color: selected ? _selectedColor : AppColors.muted,
-                      size: 22,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              'Accent color',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: _colorOptions.map((color) {
-                final selected = color == _selectedColor;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => setState(() => _selectedColor = color),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: selected ? color : AppColors.line,
-                        width: selected ? 2 : 1,
-                      ),
-                    ),
-                    child: selected
-                        ? Icon(Icons.check_rounded, color: color, size: 20)
-                        : null,
-                  ),
-                );
-              }).toList(),
-            ),
-            if (_type == EntryType.expense) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Create a local category for future records.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              ),
+              const SizedBox(height: 18),
+              EntryTypeSwitch(
+                value: _type,
+                onChanged: (type) => setState(() => _type = type),
+              ),
               const SizedBox(height: 16),
               TextField(
-                controller: _limitController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                controller: _nameController,
+                textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: 'Monthly limit',
-                  hintText: 'Optional budget amount',
+                  labelText: 'Category name',
+                  hintText: 'Coffee, Bonus, Taxi...',
                 ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 14),
+              Text('Icon', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: CategoryIconCatalog.options.map((option) {
+                  final selected = option.key == _selectedIconKey;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => setState(() => _selectedIconKey = option.key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: _selectedColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: selected ? _selectedColor : AppColors.line,
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      child: Icon(
+                        option.icon,
+                        color: selected ? _selectedColor : AppColors.muted,
+                        size: 22,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Accent color',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: _colorOptions.map((color) {
+                  final selected = color == _selectedColor;
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => setState(() => _selectedColor = color),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: selected ? color : AppColors.line,
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      child: selected
+                          ? Icon(Icons.check_rounded, color: color, size: 20)
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+              if (_type == EntryType.expense) ...[
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _limitController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Monthly limit',
+                    hintText: 'Optional budget amount',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              AppPrimaryButton(
+                label: _isSaving ? 'Saving...' : 'Create category',
+                icon: Icons.check_circle_outline_rounded,
+                onPressed: _isSaving || _nameController.text.trim().isEmpty
+                    ? null
+                    : _save,
               ),
             ],
-            const SizedBox(height: 20),
-            AppPrimaryButton(
-              label: _isSaving ? 'Saving...' : 'Create category',
-              icon: Icons.check_circle_outline_rounded,
-              onPressed: _isSaving || _nameController.text.trim().isEmpty
-                  ? null
-                  : _save,
-            ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _save() async {

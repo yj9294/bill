@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../app/app_info.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_toast.dart';
@@ -43,22 +44,34 @@ class SettingsScreen extends StatelessWidget {
                       const _DividerInset(),
                       _SettingsRow(
                         icon: Icons.policy_rounded,
-                        title: 'Policy',
-                        subtitle: 'Plain-language local data policy',
+                        title: 'Privacy Policy',
+                        subtitle: 'How your data is handled in Pure Ledger',
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const StaticTextScreen.policy(),
+                            builder: (_) =>
+                                const StaticTextScreen.privacyPolicy(),
                           ),
                         ),
                       ),
                       const _DividerInset(),
                       _SettingsRow(
-                        icon: Icons.info_rounded,
-                        title: 'About',
-                        subtitle: 'Version and product notes',
+                        icon: Icons.description_rounded,
+                        title: 'Terms of Use',
+                        subtitle: 'Conditions for using the app',
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const StaticTextScreen.about(),
+                            builder: (_) => const StaticTextScreen.termsOfUse(),
+                          ),
+                        ),
+                      ),
+                      const _DividerInset(),
+                      _SettingsRow(
+                        icon: Icons.support_agent_rounded,
+                        title: 'Support',
+                        subtitle: 'Help, troubleshooting, and contact notes',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const StaticTextScreen.support(),
                           ),
                         ),
                       ),
@@ -73,12 +86,19 @@ class SettingsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Local-only storage',
+                        '${AppInfo.name} ${AppInfo.versionLabel}',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Pure Ledger does not create accounts, use cloud sync, offer in-app purchases, request tracking, collect analytics, or upload financial records. Categories and records stay on this device.',
+                        '${AppInfo.name} stores records and categories on this device in the current release. It does not require account sign-in or cloud sync for normal use.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'This Settings section includes the Privacy Policy, Terms of Use, and Support pages required for App Store review.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.muted,
                         ),

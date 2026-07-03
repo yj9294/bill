@@ -7,11 +7,13 @@ class ScreenHeader extends StatelessWidget {
     required this.title,
     super.key,
     this.subtitle,
+    this.leading,
     this.action,
   });
 
   final String title;
   final String? subtitle;
+  final Widget? leading;
   final Widget? action;
 
   @override
@@ -21,6 +23,9 @@ class ScreenHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (leading != null) ...[
+            Padding(padding: const EdgeInsets.only(right: 12), child: leading!),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

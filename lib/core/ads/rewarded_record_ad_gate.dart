@@ -37,17 +37,23 @@ class RewardedRecordAdGate {
   static const _androidRewardedTestId =
       'ca-app-pub-3940256099942544/5224354917';
   static const _iosRewardedTestId = 'ca-app-pub-3940256099942544/1712485313';
+  static const _rewardedAdLoadTimeout = Duration(seconds: 8);
 
   final Connectivity _connectivity;
   final RewardedRecordPolicy _policy;
 
   Future<InitializationStatus>? _initializationFuture;
 
+  bool get adsEnabled => _rewardedAdUnitId != null;
+
   bool get shouldShowAdBeforeNextRecord {
-    return _rewardedAdUnitId != null && _policy.shouldShowAdBeforeNextRecord;
+    return adsEnabled && _policy.shouldShowAdBeforeNextRecord;
   }
 
   Future<void> initialize() {
+    if (!adsEnabled) {
+      return Future.value();
+    }
     return _initializationFuture ??= _initializeInternal();
   }
 
@@ -81,7 +87,10 @@ class RewardedRecordAdGate {
         },
       ),
     );
-    return completer.future;
+    return completer.future.timeout(
+      _rewardedAdLoadTimeout,
+      onTimeout: () => const RewardedAdLoadOutcome.failed(),
+    );
   }
 
   Future<bool> showRewardedAd(RewardedAd ad) async {

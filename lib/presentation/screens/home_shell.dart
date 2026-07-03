@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../core/network/network_notice_service.dart';
 import 'analytics_screen.dart';
 import 'budget_screen.dart';
 import 'money_flow_screen.dart';
@@ -8,7 +10,9 @@ import 'new_record_screen.dart';
 import 'settings_screen.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.networkNoticeService});
+
+  final NetworkNoticeService? networkNoticeService;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -16,6 +20,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
+  bool _didCheckStartupNetwork = false;
 
   static const _pages = [
     MoneyFlowScreen(),
@@ -32,6 +37,47 @@ class _HomeShellState extends State<HomeShell> {
     _NavigationItem(icon: Icons.savings_rounded, label: 'Budget'),
     _NavigationItem(icon: Icons.settings_rounded, label: 'Settings'),
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didCheckStartupNetwork) {
+      return;
+    }
+    _didCheckStartupNetwork = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) {
+        return;
+      }
+      final networkNoticeService =
+          widget.networkNoticeService ??
+          Provider.of<NetworkNoticeService?>(context, listen: false);
+      if (networkNoticeService == null) {
+        return;
+      }
+      final isOffline = await networkNoticeService.isOffline();
+      if (!mounted || !isOffline) {
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Network is off'),
+            content: const Text(
+              'Please enable network access if you want rewarded ads or other internet-dependent features to work normally.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

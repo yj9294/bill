@@ -46,146 +46,157 @@ class _NewRecordScreenState extends State<NewRecordScreen> {
     final amount = double.tryParse(_amountController.text);
 
     return SafeArea(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const ScreenHeader(
-            title: 'New Record',
-            subtitle: 'A quick entry flow inspired by the Figma sheet.',
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                AppCard(
-                  child: Column(
-                    children: [
-                      EntryTypeSwitch(
-                        value: _type,
-                        onChanged: (type) {
-                          final nextCategories = ledger.categoriesFor(type);
-                          setState(() {
-                            _type = type;
-                            _category = nextCategories.isNotEmpty
-                                ? nextCategories.first.name
-                                : '';
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: _amountController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _dismissKeyboard,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          children: [
+            const ScreenHeader(
+              title: 'New Record',
+              subtitle: 'A quick entry flow inspired by the Figma sheet.',
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  AppCard(
+                    child: Column(
+                      children: [
+                        EntryTypeSwitch(
+                          value: _type,
+                          onChanged: (type) {
+                            final nextCategories = ledger.categoriesFor(type);
+                            setState(() {
+                              _type = type;
+                              _category = nextCategories.isNotEmpty
+                                  ? nextCategories.first.name
+                                  : '';
+                            });
+                          },
                         ),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineLarge,
-                        decoration: const InputDecoration(
-                          hintText: r'$ 0.00',
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          fillColor: Colors.transparent,
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _titleController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    hintText: 'Lunch, salary, groceries...',
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _noteController,
-                  minLines: 2,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Note',
-                    hintText: 'Optional local note',
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Category',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: categories.map((category) {
-                    final selected = category.name == selectedCategory;
-                    return ChoiceChip(
-                      label: Text(category.name),
-                      selected: selected,
-                      showCheckmark: false,
-                      selectedColor: AppColors.primary.withValues(alpha: 0.22),
-                      backgroundColor: AppColors.card,
-                      side: BorderSide(
-                        color: selected ? AppColors.primary : AppColors.line,
-                      ),
-                      labelStyle: Theme.of(context).textTheme.labelLarge
-                          ?.copyWith(
-                            color: selected
-                                ? AppColors.primaryDark
-                                : AppColors.ink,
+                        const SizedBox(height: 18),
+                        TextField(
+                          controller: _amountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
                           ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      onSelected: (_) =>
-                          setState(() => _category = category.name),
-                    );
-                  }).toList(),
-                ),
-                if (categories.isEmpty) ...[
-                  const SizedBox(height: 12),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineLarge,
+                          decoration: const InputDecoration(
+                            hintText: r'$ 0.00',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            fillColor: Colors.transparent,
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _titleController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      hintText: 'Lunch, salary, groceries...',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _noteController,
+                    minLines: 2,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Note',
+                      hintText: 'Optional local note',
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      _type == EntryType.expense
-                          ? 'Add an expense category from Settings before saving.'
-                          : 'Add an income category from Settings before saving.',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                      'Category',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: categories.map((category) {
+                      final selected = category.name == selectedCategory;
+                      return ChoiceChip(
+                        label: Text(category.name),
+                        selected: selected,
+                        showCheckmark: false,
+                        selectedColor: AppColors.primary.withValues(
+                          alpha: 0.22,
+                        ),
+                        backgroundColor: AppColors.card,
+                        side: BorderSide(
+                          color: selected ? AppColors.primary : AppColors.line,
+                        ),
+                        labelStyle: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(
+                              color: selected
+                                  ? AppColors.primaryDark
+                                  : AppColors.ink,
+                            ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        onSelected: (_) =>
+                            setState(() => _category = category.name),
+                      );
+                    }).toList(),
+                  ),
+                  if (categories.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _type == EntryType.expense
+                            ? 'Add an expense category from Settings before saving.'
+                            : 'Add an income category from Settings before saving.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  AppPrimaryButton(
+                    label: _isSubmitting ? 'Unlocking...' : 'Save Record',
+                    icon: Icons.check_rounded,
+                    onPressed:
+                        _isSubmitting ||
+                            amount == null ||
+                            amount <= 0 ||
+                            categories.isEmpty
+                        ? null
+                        : () async {
+                            await _handleSaveRecord(
+                              amount: amount,
+                              category: selectedCategory,
+                              fallbackCategory: categories.first.name,
+                            );
+                          },
+                  ),
                 ],
-                const SizedBox(height: 24),
-                AppPrimaryButton(
-                  label: _isSubmitting ? 'Unlocking...' : 'Save Record',
-                  icon: Icons.check_rounded,
-                  onPressed:
-                      _isSubmitting ||
-                          amount == null ||
-                          amount <= 0 ||
-                          categories.isEmpty
-                      ? null
-                      : () async {
-                          await _handleSaveRecord(
-                            amount: amount,
-                            category: selectedCategory,
-                            fallbackCategory: categories.first.name,
-                          );
-                        },
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   Future<void> _handleSaveRecord({
@@ -240,10 +251,10 @@ class _NewRecordScreenState extends State<NewRecordScreen> {
       return true;
     }
 
-    await AppLoadingDialog.show(
+    AppLoadingDialog.show(
       context,
       title: 'Loading rewarded ad',
-      message: 'A short test ad is required before this record is saved.',
+      message: 'Preparing rewarded ad...',
     );
 
     var loadingVisible = true;
@@ -281,22 +292,24 @@ class _NewRecordScreenState extends State<NewRecordScreen> {
           rewardedAdGate.markRecordSavedWithoutAd();
           return true;
         case RewardedAdLoadStatus.noNetwork:
+          rewardedAdGate.markRecordSavedWithoutAd();
           AppToast.show(
             context,
-            title: 'Network required',
+            title: 'Enable network',
             message:
-                'Connect to the internet before requesting the rewarded ad.',
+                'Please turn on your network connection. The record was saved without the rewarded ad.',
             tone: AppToastTone.warning,
           );
-          return false;
+          return true;
         case RewardedAdLoadStatus.failed:
+          rewardedAdGate.markRecordSavedWithoutAd();
           AppToast.show(
             context,
-            title: 'Ad failed to load',
-            message: 'The rewarded test ad did not load. Please try again.',
-            tone: AppToastTone.warning,
+            title: 'Saved without ad',
+            message:
+                'The rewarded ad did not load, so the record was saved normally.',
           );
-          return false;
+          return true;
       }
     } finally {
       if (loadingVisible && mounted) {
