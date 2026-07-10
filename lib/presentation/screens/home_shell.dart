@@ -20,7 +20,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
-  bool _didCheckStartupNetwork = false;
+  bool _didShowStartupNetworkDialog = false;
 
   static const _pages = [
     MoneyFlowScreen(),
@@ -41,10 +41,10 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_didCheckStartupNetwork) {
+    if (_didShowStartupNetworkDialog) {
       return;
     }
-    _didCheckStartupNetwork = true;
+    _didShowStartupNetworkDialog = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
         return;
@@ -52,25 +52,28 @@ class _HomeShellState extends State<HomeShell> {
       final networkNoticeService =
           widget.networkNoticeService ??
           Provider.of<NetworkNoticeService?>(context, listen: false);
-      if (networkNoticeService == null) {
-        return;
-      }
-      final isOffline = await networkNoticeService.isOffline();
-      if (!mounted || !isOffline) {
+      final isOffline = await networkNoticeService?.isOffline() ?? false;
+      if (!mounted) {
         return;
       }
       await showDialog<void>(
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Network is off'),
-            content: const Text(
-              'Please enable network access if you want rewarded ads or other internet-dependent features to work normally.',
+            title: Text(
+              isOffline
+                  ? 'Enable network for rewarded ads'
+                  : 'Network access notice',
+            ),
+            content: Text(
+              isOffline
+                  ? 'Please turn on Wi-Fi or mobile data. Pure Ledger can still save records offline, but rewarded ads cannot load until the network is available.'
+                  : 'Pure Ledger works offline, but rewarded ads need network access to load normally. This app does not request ATT and does not track you.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('OK'),
+                child: const Text('Continue'),
               ),
             ],
           );

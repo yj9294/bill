@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'admob_ids.dart';
 import 'rewarded_record_policy.dart';
 
 enum RewardedAdLoadStatus { loaded, disabled, noNetwork, failed }
@@ -34,15 +34,14 @@ class RewardedRecordAdGate {
   }) : _connectivity = connectivity ?? Connectivity(),
        _policy = policy ?? RewardedRecordPolicy();
 
-  static const _androidRewardedTestId =
-      'ca-app-pub-3940256099942544/5224354917';
-  static const _iosRewardedTestId = 'ca-app-pub-3940256099942544/1712485313';
   static const _rewardedAdLoadTimeout = Duration(seconds: 8);
 
   final Connectivity _connectivity;
   final RewardedRecordPolicy _policy;
 
-  Future<InitializationStatus>? _initializationFuture;
+  Future<void>? _initializationFuture;
+  RewardedAd? _cachedRewardedAd;
+  Future<RewardedAdLoadOutcome>? _preloadFuture;
 
   bool get adsEnabled => _rewardedAdUnitId != null;
 
@@ -54,7 +53,15 @@ class RewardedRecordAdGate {
     if (!adsEnabled) {
       return Future.value();
     }
-    return _initializationFuture ??= _initializeInternal();
+    final existingInitialization = _initializationFuture;
+    if (existingInitialization != null) {
+      return existingInitialization;
+    }
+
+    _initializationFuture = _initializeInternal().then<void>((_) {
+      unawaited(preloadRewardedAd());
+    });
+    return _initializationFuture!;
   }
 
   Future<RewardedAdLoadOutcome> loadRewardedAdForRecord() async {
@@ -64,6 +71,22 @@ class RewardedRecordAdGate {
     }
 
     await initialize();
+    final cachedRewardedAd = _cachedRewardedAd;
+    if (cachedRewardedAd != null) {
+      _cachedRewardedAd = null;
+      return RewardedAdLoadOutcome.loaded(cachedRewardedAd);
+    }
+
+    final preloadingRewardedAd = _preloadFuture;
+    if (preloadingRewardedAd != null) {
+      final preloadedOutcome = await preloadingRewardedAd;
+      final preloadedAd = _cachedRewardedAd;
+      if (preloadedOutcome.status == RewardedAdLoadStatus.loaded &&
+          preloadedAd != null) {
+        _cachedRewardedAd = null;
+        return RewardedAdLoadOutcome.loaded(preloadedAd);
+      }
+    }
 
     final connectivityResults = await _connectivity.checkConnectivity();
     if (connectivityResults.isEmpty ||
@@ -73,24 +96,7 @@ class RewardedRecordAdGate {
       return const RewardedAdLoadOutcome.noNetwork();
     }
 
-    final completer = Completer<RewardedAdLoadOutcome>();
-    RewardedAd.load(
-      adUnitId: rewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) =>
-            completer.complete(RewardedAdLoadOutcome.loaded(ad)),
-        onAdFailedToLoad: (_) {
-          if (!completer.isCompleted) {
-            completer.complete(const RewardedAdLoadOutcome.failed());
-          }
-        },
-      ),
-    );
-    return completer.future.timeout(
-      _rewardedAdLoadTimeout,
-      onTimeout: () => const RewardedAdLoadOutcome.failed(),
-    );
+    return _startRewardedAdLoad(rewardedAdUnitId);
   }
 
   Future<bool> showRewardedAd(RewardedAd ad) async {
@@ -100,12 +106,14 @@ class RewardedRecordAdGate {
     ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
       onAdDismissedFullScreenContent: (rewardedAd) {
         rewardedAd.dispose();
+        unawaited(preloadRewardedAd());
         if (!completer.isCompleted) {
           completer.complete(rewardEarned);
         }
       },
       onAdFailedToShowFullScreenContent: (rewardedAd, _) {
         rewardedAd.dispose();
+        unawaited(preloadRewardedAd());
         if (!completer.isCompleted) {
           completer.complete(false);
         }
@@ -137,17 +145,52 @@ class RewardedRecordAdGate {
     return MobileAds.instance.initialize();
   }
 
-  String? get _rewardedAdUnitId {
-    if (!kDebugMode) {
-      return null;
+  Future<RewardedAdLoadOutcome> preloadRewardedAd() async {
+    final rewardedAdUnitId = _rewardedAdUnitId;
+    if (rewardedAdUnitId == null || _cachedRewardedAd != null) {
+      return const RewardedAdLoadOutcome.disabled();
     }
+    return _preloadFuture ??= _preloadRewardedAdInternal(rewardedAdUnitId);
+  }
 
-    if (Platform.isAndroid) {
-      return _androidRewardedTestId;
+  Future<RewardedAdLoadOutcome> _preloadRewardedAdInternal(
+    String rewardedAdUnitId,
+  ) async {
+    try {
+      final outcome = await _startRewardedAdLoad(rewardedAdUnitId);
+      if (outcome.status == RewardedAdLoadStatus.loaded) {
+        _cachedRewardedAd = outcome.ad;
+      }
+      return outcome;
+    } finally {
+      _preloadFuture = null;
     }
-    if (Platform.isIOS) {
-      return _iosRewardedTestId;
-    }
-    return null;
+  }
+
+  Future<RewardedAdLoadOutcome> _startRewardedAdLoad(
+    String rewardedAdUnitId,
+  ) async {
+    final completer = Completer<RewardedAdLoadOutcome>();
+    RewardedAd.load(
+      adUnitId: rewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) =>
+            completer.complete(RewardedAdLoadOutcome.loaded(ad)),
+        onAdFailedToLoad: (_) {
+          if (!completer.isCompleted) {
+            completer.complete(const RewardedAdLoadOutcome.failed());
+          }
+        },
+      ),
+    );
+    return completer.future.timeout(
+      _rewardedAdLoadTimeout,
+      onTimeout: () => const RewardedAdLoadOutcome.failed(),
+    );
+  }
+
+  String? get _rewardedAdUnitId {
+    return AdMobIds.currentRewardedAdUnitId;
   }
 }
